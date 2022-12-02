@@ -3,7 +3,6 @@ import os
 
 def getCalorieList(fileName, log = False):
     file = open(fileName, 'r')
-    #input =  [int(x) for x in file.read().split("\n\n")]
     input =  [sum((int(y) for y in x.split("\n"))) for x in file.read().split("\n\n")]
 
     if log: print(input)
