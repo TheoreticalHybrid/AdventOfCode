@@ -14,9 +14,6 @@ def getPackList(fileName):
 
     return input
 
-def intersection(list1, list2):
-    return [value for value in list1 if value in list2][0]
-
 def getPackDupeLetter(pack: str) -> chr:
     length = len(pack)
     compartment1 = pack[0:length//2]
