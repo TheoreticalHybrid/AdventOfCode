@@ -12,7 +12,7 @@ def getInput(fileName):
 
     return input
 
-def getStartOfPacketMarker(input, charCount):
+def getPacketMarker(input, charCount):
     marker = ""
     i = 1
     
@@ -36,8 +36,8 @@ file = 'example.txt' if useDemo else 'input1.txt'
 input = getInput(file)
 
 for line in input:
-    print(f'S Packet Index: ', getStartOfPacketMarker(line, 4))
-    print(f'E Packet Index: ', getStartOfPacketMarker(line, 14))   
+    print(f'S Packet Index: ', getPacketMarker(line, 4))
+    print(f'E Packet Index: ', getPacketMarker(line, 14))   
     print()
 
 endtime = time.time()
