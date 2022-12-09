@@ -16,7 +16,7 @@ def getInput(fileName):
 headPosition = (0,0)
 tailPosition = (0,0)
 
-tailHistory = {0: {0}}
+tailHistory = {tailPosition}
     
 
 def followCommands(commands):
@@ -43,26 +43,21 @@ def followCommands(commands):
         if (abs(headX-tailX) > 1):
             #move tail
             startX = tailX + (1 if headX > tailX else -1)
-            endX = startX
+            
             for x in range(startX, headX, 1 if headX > tailX else -1):
-                if x not in tailHistory:
-                    tailHistory[x] = {headY}
-                else:
-                    tailHistory[x].add(headY)
+                tailPosition = (x, headY)
+                tailHistory.add(tailPosition)
 
-                endX = x
-
-            tailPosition = (endX, headY)
         elif (abs(headY-tailY) > 1):
             #move tail
             startY = tailY + (1 if headY > tailY else -1)
-            yMoves = [*range(startY, headY, 1 if headY > tailY else -1)]
-            if headX not in tailHistory: tailHistory[headX] = set(yMoves)
-            else: tailHistory[headX].update(yMoves)
+            moves = [(headX, y) for y in range(startY, headY, 1 if headY > tailY else -1)]
+            
+            tailHistory.update(moves)
 
-            tailPosition = (headX, yMoves[-1])
+            tailPosition = moves[-1]
 
-    if USE_LOGGING: print([(k,v) for k in tailHistory.keys() for v in tailHistory[k]])
+    if USE_LOGGING: print(tailHistory)
 
 
 def flatten(listOfLists):
@@ -77,8 +72,8 @@ file = 'example.txt' if USE_DEMO else 'input1.txt'
 
 commands = getInput(file)
 followCommands(commands)
-solution = len([(k,v) for k in tailHistory.keys() for v in tailHistory[k]])
+solution = len(tailHistory)
 
 endtime = time.time()
 print('Solution: ', solution)
-print ('Completion time: ', endtime - startTime) #0.012001752853393555
+print ('Completion time: ', endtime - startTime) #0.006005287170410156
