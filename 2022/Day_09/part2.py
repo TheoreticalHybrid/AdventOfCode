@@ -39,10 +39,11 @@ def followCommands(commands):
         tailX, tailY = tailPosition[0], tailPosition[1]
         
         #determine if tail needs to move
+        #print(f'{tailPosition} -> {headPosition}')
         if (abs(headX-tailX) > 1):
+            #move tail
             startX = tailX + (1 if headX > tailX else -1)
             endX = startX
-            
             for x in range(startX, headX, 1 if headX > tailX else -1):
                 if x not in tailHistory:
                     tailHistory[x] = {headY}
@@ -53,15 +54,19 @@ def followCommands(commands):
 
             tailPosition = (endX, headY)
         elif (abs(headY-tailY) > 1):
+            #move tail
             startY = tailY + (1 if headY > tailY else -1)
             yMoves = [*range(startY, headY, 1 if headY > tailY else -1)]
-           
             if headX not in tailHistory: tailHistory[headX] = set(yMoves)
             else: tailHistory[headX].update(yMoves)
 
             tailPosition = (headX, yMoves[-1])
 
     if USE_LOGGING: print([(k,v) for k in tailHistory.keys() for v in tailHistory[k]])
+
+
+def flatten(listOfLists):
+    return list(chain(*listOfLists))
 
 #start of main
 solution = 0
