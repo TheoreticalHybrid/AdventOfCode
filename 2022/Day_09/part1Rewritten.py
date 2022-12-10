@@ -59,10 +59,6 @@ def followCommands(commands):
 
     if USE_LOGGING: print(tailHistory)
 
-
-def flatten(listOfLists):
-    return list(chain(*listOfLists))
-
 #start of main
 solution = 0
 
