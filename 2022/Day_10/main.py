@@ -46,14 +46,11 @@ if (PART_ONE):
         print(f'Clock {c} = {xValue}')
         solution += (xValue * c)
 else:
-    crtVal = 0
     for i in range(len(xRegister)):
-        if i > 0 and i%CRT_WIDTH == 0: 
-            print()
-            crtVal = 0
+        crtVal = i%CRT_WIDTH
+        if i > 0 and crtVal == 0: print()
 
         print("#" if abs(xRegister[i] - crtVal) < 2 else ".", end = " ")
-        crtVal += 1
 
 endtime = time.time()
 print('Solution: ', solution)
