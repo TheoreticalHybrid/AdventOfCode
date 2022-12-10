@@ -1,9 +1,8 @@
 from itertools import chain
 import time
 
-USE_LOGGING = True
-SUPER_LOGGING = False
-USE_DEMO = True
+USE_LOGGING = False
+USE_DEMO = False
 PART_ONE = False
 
 def getInput(fileName):
@@ -14,78 +13,49 @@ def getInput(fileName):
 
     return input
 
-headPosition = (0,0)
+knotPositions = [(0,0)] * 10
+tailHistory = {(0,0)}
 
-tailHistories = [[(0,0)] for x in range(9)]
+def adjustTail():
+    for k in range(1,10):
+        localHead = knotPositions[k-1]
+        localTail = knotPositions[k]
+
+        xDiff = localHead[0] - localTail[0]
+        yDiff = localHead[1] - localTail[1]
+
+        if abs(xDiff) < 2 and abs(yDiff) < 2: break #Knots are adjacent, no more moves to be done
+
+        newX = localTail[0] + (1 if xDiff > 0 else -1 if xDiff < 0 else 0)
+        newY = localTail[1] + (1 if yDiff > 0 else -1 if yDiff < 0 else 0)
+        newPosition = (newX, newY)
+
+        if USE_LOGGING: print(f'\tKnot {k} moved to {newPosition}')
+
+        knotPositions[k] = newPosition
+        if k == 9: tailHistory.add(newPosition)
 
 def followCommands(commands):
-    global headPosition
     
     for c in commands:
         if USE_LOGGING: print(c)
 
+        head = knotPositions[0]
+        headMoves = []
+
         match c.strip().split():
             case 'U', u: 
-                headPosition = (headPosition[0], headPosition[1] + int(u))
+                headMoves = [(head[0], head[1] + y) for y in range(1, int(u) + 1)]
             case 'D', d:
-                headPosition = (headPosition[0], headPosition[1] - int(d))
+                headMoves = [(head[0], head[1] - y) for y in range(1, int(d) + 1)]
             case 'L', l:
-                headPosition = (headPosition[0] - int(l), headPosition[1])
+                headMoves = [(head[0] - x, head[1]) for x in range(1, int(l) + 1)]
             case 'R', r:
-                headPosition = (headPosition[0] + int(r), headPosition[1])
-
-        localHeadPosition = headPosition
+                headMoves = [(head[0] + x, head[1]) for x in range(1, int(r) + 1)]
         
-        for knot in range(9): #I can't be bothered to make this data driven today
-            localTailPosition = tailHistories[knot][-1]
-            positionDiff = tuple(map(lambda i, j: i - j, localHeadPosition, localTailPosition))
-            diffX, diffY = positionDiff[0], positionDiff[1]
-            #headX, headY = localHeadPosition[0], localHeadPosition[1]
-            tailX, tailY = localTailPosition[0], localTailPosition[1]
-
-            if SUPER_LOGGING: print(f'\t\tKnot {knot + 1}: {localHeadPosition} - {localTailPosition} = {positionDiff}')
-
-            xmod = 1 if diffX > 0 else -1 if diffX < 0 else 0
-            ymod = 1 if diffY > 0 else -1 if diffY < 0 else 0
-
-            if xmod == ymod == 0: 
-                if USE_LOGGING: print(f'\t\tBreak on knot {knot + 1}')
-                break
-            
-            xRange = []
-            yRange = []
-
-            if diffX == 0:
-                yRange = list(range(1 * ymod, diffY, ymod))
-                xRange = [0] * len(yRange)
-            elif diffY == 0:
-                xRange = list(range(1 * xmod, diffX, xmod))
-                yRange = [0] * len(xRange)
-            else:
-                xRange = list(range(1 * xmod, diffX + xmod, xmod))
-                yRange = list(range(1 * ymod, diffY + ymod, ymod))
-                
-                diff = len(xRange) - len(yRange)
-                
-                if diff < 0:
-                    xRange += [xRange[-1]] * abs(diff)
-                elif diff > 0:
-                    yRange += [yRange[-1]] * diff
-
-            for i,j in zip(xRange, yRange):                
-                if abs(localHeadPosition[0] - localTailPosition[0]) < 2 and abs(localHeadPosition[1] - localTailPosition[1]) < 2:
-                    break
-
-                localTailPosition = (tailX + i, tailY + j)
-                if SUPER_LOGGING: print(f'\t\t{(tailX, tailY)} + {(i,j)} = {localTailPosition}')
-                tailHistories[knot].append(localTailPosition)
-
-            if USE_LOGGING: print(f'\tKnot {knot + 1} ended at {localTailPosition}')
-            localHeadPosition = localTailPosition
-
-            if USE_LOGGING: print()
-
-    #if USE_LOGGING: print(tailHistories)
+        for move in headMoves:
+            knotPositions[0] = move
+            adjustTail()
 
 
 #start of main
@@ -99,13 +69,13 @@ if USE_LOGGING: print('---------------------------------------------------------
 
 commands = getInput(file)
 followCommands(commands)
-seen = set()
-unique9set = [x for x in tailHistories[-1] if x not in seen and not seen.add(x)]
+
 if USE_LOGGING: 
-    for point in unique9set: 
+    for point in sorted(tailHistory): 
         print(point)
-solution = len(unique9set)
+
+solution = len(tailHistory)
 
 endtime = time.time()
 print('Solution: ', solution)
-print ('Completion time: ', endtime - startTime) #0.006005287170410156
+print ('Completion time: ', endtime - startTime) #0.03854012489318848
