@@ -31,16 +31,12 @@ else:
 
 for x,y in queue:
     distances[x,y] = 0
-
-seenSet = set()
     
 answer = 100000
 while len(queue) > 0:
     coord = queue.popleft()
     currentX,currentY = coord
-    
-    if coord in seenSet: print("REPEAT")
-    seenSet.add(coord)
+    newDistance = distances[currentX,currentY] + 1
 
     if (currentX,currentY) == (targetX,targetY):
         answer = distances[targetX,targetY]
@@ -50,7 +46,6 @@ while len(queue) > 0:
         newX,newY = currentX+directionX,currentY+directionY
         if newX in range(gridHeight) and newY in range(gridLength):
             if grid[currentX][currentY] >= grid[newX][newY] - 1:
-                newDistance = distances[currentX,currentY] + 1
                 if newDistance < distances[newX,newY]:
                     queue.append((newX,newY))
                     distances[newX,newY] = newDistance

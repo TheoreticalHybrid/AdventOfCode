@@ -6,12 +6,7 @@ from typing import List
 
 USE_LOGGING = False
 USE_DEMO = False
-PART_ONE = True
-
-REACH_OVERRIDE = False
-REVERSE_SEARCH = False
-STARTING_VALUE = 0
-ENDING_VALUE = 0
+PART_ONE = False
 
 GRID_HEIGHT = 0
 GRID_WIDTH = 0
@@ -38,23 +33,9 @@ class Point:
     def kill(self):
         self.Dead = True
 
-def printGrid(grid):
-    for line in grid:
-        for point in line:
-            dirs = []
-            for d in point.PossibleSteps:
-                if d is Directions.Down:
-                    dirs.append("D")
-                elif d is Directions.Up:
-                    dirs.append("U")
-                elif d is Directions.Left:
-                    dirs.append("L")
-                elif d is Directions.Right:
-                    dirs.append("R")
-
-            print(f'[{point.Value} : {"/".join(dirs)}]', end=" ")
-        
-        print()
+    def reset(self):
+        self.Dead = False
+        self.ShortestPath = -1
 
 def printAlphaGrid(grid):
     with open(r"Output.txt", "a") as outFile:
@@ -62,7 +43,7 @@ def printAlphaGrid(grid):
         outFile.write("\n\n")
 
 def getLetterValue(letter: chr) -> int:
-    return (ord(letter) - 96) if letter.islower() else 0 if letter == "S" else 27
+    return (ord(letter) - 96) if letter.islower() else 1 if letter == "S" else 26
 
 def getInput(fileName):
     global GRID_HEIGHT
@@ -79,10 +60,6 @@ def getInput(fileName):
     for row in range(GRID_HEIGHT):
         for column in range(GRID_WIDTH):
             thisPoint = input[row][column]
-
-            if thisPoint.Value == ENDING_VALUE:
-                thisPoint.ShortestPath = 0
-                continue
         
             # upward move
             if row > 0: 
@@ -131,14 +108,9 @@ def getInput(fileName):
 EndPoint = None
 
 def validStep(here, there):
-    # If Reverse, allow all steps up but at most one step down
-    # If Regular, allow all steps down but at most one step up
-    # Changed to not allow reverse direction steps because I can visually see on the map that it's not necessary, lots of traps
-    if type(there) is not int: return False
+    return (here - there >= -1)
 
-    return (there - here >= -1) if REVERSE_SEARCH else (here - there >= -1)
-
-def findPaths(inputGrid, goalCoords):
+def findPathsPart1(inputGrid, goalCoords):
     gRow, gCol = goalCoords
     
     passUpdates = 1
@@ -147,7 +119,6 @@ def findPaths(inputGrid, goalCoords):
     colRange = range(GRID_WIDTH)
     
     while passUpdates > 0:
-        previousRowUpdates = 0
         passUpdates = 0
 
         for row in rowRange:
@@ -159,7 +130,6 @@ def findPaths(inputGrid, goalCoords):
                 for col in colRange:
                     p: Point = inputGrid[row][col]
 
-                    #if (True or p.ShortestPath < 0): #only do it if we haven't found a shortest path value, might be a mistake
                     bestStep = None
                     for d in p.PossibleSteps:
                         dr, dc = d.value
@@ -174,16 +144,7 @@ def findPaths(inputGrid, goalCoords):
                         thisRowUpdates += 1
                         passUpdates += 1
 
-                #if previousRowUpdates > 0 and thisRowUpdates == 0:
-                    #break #want to skip the rest and restart
-
-                #previousRowUpdates = thisRowUpdates
-
-        if USE_LOGGING: 
-            print(f'Iteration Updates: {passUpdates}')
-            printAlphaGrid(inputGrid)
-
-    killings = 1
+    """ killings = 1
     while killings > 0:
         killings = 0
 
@@ -204,58 +165,22 @@ def findPaths(inputGrid, goalCoords):
                 if dead: 
                     p.kill()
                     killings += 1
-                    continue
+                    continue """
 
-        if USE_LOGGING: 
-            print(f'Deaths: {killings}')
-            printAlphaGrid(inputGrid)
-
-        
-"""         for d in Directions:
-            adjRow, adjCol = d.value
-            adjPoint:Point = inputGrid[row + adjRow][col + adjCol]
-            oppDirection = None
-            stepLength = myPoint.ShortestPath + 1
-
-            match d:
-                case Directions.Up:
-                    oppDirection = Directions.Down
-                case Directions.Down:
-                    oppDirection = Directions.Up
-                case Directions.Left:
-                    oppDirection = Directions.Right
-                case Directions.Right:
-                    oppDirection = Directions.Left
-
-            if adjPoint.PossibleSteps.__contains__(oppDirection): #if adjacent cell can get to me
-                if adjPoint.ShortestPath < 0:
-                    adjPoint.ShortestPath = stepLength
-                elif adjPoint.ShortestPath > stepLength:
-                    adjPoint.PossibleSteps.clear()
-                    adjPoint.ShortestPath = stepLength """
+    if USE_LOGGING: 
+        printAlphaGrid(inputGrid)
 
 def getTargetCoordinates(input):
     global EndPoint
 
-    startingPoint = (-1, -1)
-    for i, row in enumerate(input):
-        matches = [x for x in range(len(row)) if row[x].Value == STARTING_VALUE]
-        if (matches):
-            startingPoint = (i, matches[0])
-        
-        matches = [x for x in range(len(row)) if row[x].Value == ENDING_VALUE]
-        if (matches):
-            EndPoint = (i, matches[0])
+    startingPoint = [(i,j) for i in range(GRID_HEIGHT) for j in range(GRID_WIDTH) if input[i][j].Name == "S"][0]
+    EndPoint = [(i,j) for i in range(GRID_HEIGHT) for j in range(GRID_WIDTH) if input[i][j].Name == "E"][0]
 
     return startingPoint
 
 def main(argv):
     global USE_DEMO
     global USE_LOGGING
-    global REVERSE_SEARCH
-    global REACH_OVERRIDE
-    global STARTING_VALUE
-    global ENDING_VALUE
     
     solution = 0
 
@@ -266,16 +191,9 @@ def main(argv):
                 USE_DEMO = True
             case "-l":
                 USE_LOGGING = True
-            case "-r":
-                REVERSE_SEARCH = True
-            case "-o":
-                REACH_OVERRIDE = True
     
     #USE_DEMO = True
     #USE_LOGGING = True
-
-    STARTING_VALUE = 27 if REVERSE_SEARCH else 0
-    ENDING_VALUE = 0 if REVERSE_SEARCH else 27
 
     startTime = time.perf_counter()
 
@@ -283,8 +201,18 @@ def main(argv):
 
     input = getInput(file)
     startIndex = getTargetCoordinates(input)
-    findPaths(input, startIndex)
-    solution = input[startIndex[0]][startIndex[1]].ShortestPath
+    input[EndPoint[0]][EndPoint[1]].ShortestPath = 0
+    findPathsPart1(input, startIndex)
+
+    if PART_ONE:
+        solution = input[startIndex[0]][startIndex[1]].ShortestPath
+    else:
+        minPath = 5000
+        for startingPoint in [(i,j) for i in range(GRID_HEIGHT) for j in range(GRID_WIDTH) if input[i][j].Value == 1]:
+            shortPath = input[startingPoint[0]][startingPoint[1]].ShortestPath
+            if shortPath > 0: minPath = min(minPath, shortPath)
+
+        solution = minPath
 
     endtime = time.perf_counter()
 
