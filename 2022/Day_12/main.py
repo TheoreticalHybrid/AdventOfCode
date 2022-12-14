@@ -28,8 +28,15 @@ class Point:
         self.Value = value
         self.PossibleSteps: set(Directions) = set()
         self.ShortestPath = -1
-        self.OptimalPathDirections: set(Directions) = set()
+        self.Parents: set(Directions) = set()
+        self.Dead = False
         pass
+
+    def assignParent(self, parent: Directions):
+        self.Parents.add(parent)
+
+    def kill(self):
+        self.Dead = True
 
 def printGrid(grid):
     for line in grid:
@@ -49,9 +56,9 @@ def printGrid(grid):
         
         print()
 
-def printAlphaGrid(grid, finalPass):
+def printAlphaGrid(grid):
     with open(r"Output.txt", "a") as outFile:
-        outFile.write("\n".join(["".join([("." if finalPass else str(p.ShortestPath)) if p.ShortestPath > 0 else p.Name for p in line]) for line in grid]))
+        outFile.write("\n".join(["".join([f'{"#".center(3)}|' if p.Dead else f'{str(p.ShortestPath).rjust(3,"0")}|' if p.ShortestPath > 0 else f'{p.Name.center(3)}|' for p in line]) for line in grid]))
         outFile.write("\n\n")
 
 def getLetterValue(letter: chr) -> int:
@@ -69,7 +76,6 @@ def getInput(fileName):
     GRID_WIDTH = len(input[0])
 
     #Gather All Steps
-
     for row in range(GRID_HEIGHT):
         for column in range(GRID_WIDTH):
             thisPoint = input[row][column]
@@ -101,6 +107,23 @@ def getInput(fileName):
                 rMove = input[row][column+1]
                 if validStep(thisPoint.Value, rMove.Value):
                     thisPoint.PossibleSteps.add(Directions.Right)
+    
+    #Assign All Parents
+    for row in range(GRID_HEIGHT):
+        for column in range(GRID_WIDTH):
+            thisPoint = input[row][column]
+        
+            for d in thisPoint.PossibleSteps:
+                dr, dc = d.value
+                match d:
+                    case Directions.Up:
+                        input[row+dr][column+dc].assignParent(Directions.Down)
+                    case Directions.Down:
+                        input[row+dr][column+dc].assignParent(Directions.Up)
+                    case Directions.Left:
+                        input[row+dr][column+dc].assignParent(Directions.Right)
+                    case Directions.Right:
+                        input[row+dr][column+dc].assignParent(Directions.Left)
 
     #if USE_LOGGING: printGrid(input)
     return input
@@ -119,18 +142,21 @@ def findPaths(inputGrid, goalCoords):
     gRow, gCol = goalCoords
     
     passUpdates = 1
+
+    rowRange = range(GRID_HEIGHT)
+    colRange = range(GRID_WIDTH)
     
     while passUpdates > 0:
         previousRowUpdates = 0
         passUpdates = 0
 
-        for row in range(GRID_HEIGHT):
+        for row in rowRange:
             thisRowUpdates = 1
 
             while (thisRowUpdates > 0):
                 thisRowUpdates = 0
 
-                for col in range(GRID_WIDTH):
+                for col in colRange:
                     p: Point = inputGrid[row][col]
 
                     #if (True or p.ShortestPath < 0): #only do it if we haven't found a shortest path value, might be a mistake
@@ -151,11 +177,38 @@ def findPaths(inputGrid, goalCoords):
                 #if previousRowUpdates > 0 and thisRowUpdates == 0:
                     #break #want to skip the rest and restart
 
-                previousRowUpdates = thisRowUpdates
+                #previousRowUpdates = thisRowUpdates
 
         if USE_LOGGING: 
             print(f'Iteration Updates: {passUpdates}')
-            printAlphaGrid(inputGrid, False)
+            printAlphaGrid(inputGrid)
+
+    killings = 1
+    while killings > 0:
+        killings = 0
+
+        # check for dead points. Might be problematic since I'm doing incremental updates
+        for row in rowRange:
+            for col in colRange:
+                p: Point = inputGrid[row][col]
+
+                if p.Dead or (row == gRow and col == gCol): continue
+
+                #The point is dead if no points that can step to it are live or none of them have a 1 higher step value
+                dead = True
+                for pd in p.Parents:
+                    pr, pc = pd.value
+                    parentPoint = inputGrid[row+pr][col+pc]
+                    dead = dead and (parentPoint.Dead or (p.ShortestPath >= 0 and parentPoint.ShortestPath >=0 and parentPoint.ShortestPath != p.ShortestPath+1))
+
+                if dead: 
+                    p.kill()
+                    killings += 1
+                    continue
+
+        if USE_LOGGING: 
+            print(f'Deaths: {killings}')
+            printAlphaGrid(inputGrid)
 
         
 """         for d in Directions:
@@ -232,8 +285,6 @@ def main(argv):
     startIndex = getTargetCoordinates(input)
     findPaths(input, startIndex)
     solution = input[startIndex[0]][startIndex[1]].ShortestPath
-
-    if USE_LOGGING: printAlphaGrid(input, True)
 
     endtime = time.perf_counter()
 
