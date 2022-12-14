@@ -23,7 +23,8 @@ class Directions(Enum):
     Right = (0, 1)
 
 class Point:
-    def __init__(self, value):
+    def __init__(self, name, value):
+        self.Name = name
         self.Value = value
         self.PossibleSteps: set(Directions) = set()
         self.ShortestPath = -1
@@ -48,6 +49,11 @@ def printGrid(grid):
         
         print()
 
+def printAlphaGrid(grid, finalPass):
+    with open(r"Output.txt", "a") as outFile:
+        outFile.write("\n".join(["".join([("." if finalPass else str(p.ShortestPath)) if p.ShortestPath > 0 else p.Name for p in line]) for line in grid]))
+        outFile.write("\n\n")
+
 def getLetterValue(letter: chr) -> int:
     return (ord(letter) - 96) if letter.islower() else 0 if letter == "S" else 27
 
@@ -58,7 +64,7 @@ def getInput(fileName):
 
     file = open(fileName, 'r')
     
-    input = [[Point(getLetterValue(c)) for c in l.strip()] for l in file.readlines()]
+    input = [[Point(c, getLetterValue(c)) for c in l.strip()] for l in file.readlines()]
     GRID_HEIGHT = len(input)
     GRID_WIDTH = len(input[0])
 
@@ -70,38 +76,30 @@ def getInput(fileName):
 
             if thisPoint.Value == ENDING_VALUE:
                 thisPoint.ShortestPath = 0
-                #continue
+                continue
         
             # upward move
             if row > 0: 
                 uMove = input[row-1][column]
                 if validStep(thisPoint.Value, uMove.Value):
-                    #move = (uMove, "up")
-                    #update thispoint
                     thisPoint.PossibleSteps.add(Directions.Up)
 
             # down move
             if row < GRID_HEIGHT - 1: 
                 dMove = input[row+1][column]
                 if validStep(thisPoint.Value, dMove.Value):
-                    #move = (dMove, "down")
-                    #update thispoint
                     thisPoint.PossibleSteps.add(Directions.Down)
 
             # left move
             if column > 0: 
                 lMove = input[row][column-1]
                 if validStep(thisPoint.Value, lMove.Value):
-                    #move = (lMove, "left")
-                    #update thispoint
                     thisPoint.PossibleSteps.add(Directions.Left)
 
             # right move
             if column < GRID_WIDTH - 1: 
                 rMove = input[row][column+1]
                 if validStep(thisPoint.Value, rMove.Value):
-                    #move = (rMove, "right")
-                    #update thispoint
                     thisPoint.PossibleSteps.add(Directions.Right)
 
     #if USE_LOGGING: printGrid(input)
@@ -127,31 +125,37 @@ def findPaths(inputGrid, goalCoords):
         passUpdates = 0
 
         for row in range(GRID_HEIGHT):
-            thisRowUpdates = 0
-            for col in range(GRID_WIDTH):
-                p: Point = inputGrid[row][col]
+            thisRowUpdates = 1
 
-                #if (True or p.ShortestPath < 0): #only do it if we haven't found a shortest path value, might be a mistake
-                bestStep = None
-                for d in p.PossibleSteps:
-                    dr, dc = d.value
-                    stepPathValue = inputGrid[row+dr][col+dc].ShortestPath + 1
+            while (thisRowUpdates > 0):
+                thisRowUpdates = 0
 
-                    if stepPathValue > 0:
-                        if bestStep is None or stepPathValue < bestStep:
-                            bestStep = stepPathValue
+                for col in range(GRID_WIDTH):
+                    p: Point = inputGrid[row][col]
 
-                if bestStep is not None and (p.ShortestPath < 0 or bestStep < p.ShortestPath):
-                    p.ShortestPath = bestStep
-                    thisRowUpdates += 1
-                    passUpdates += 1
+                    #if (True or p.ShortestPath < 0): #only do it if we haven't found a shortest path value, might be a mistake
+                    bestStep = None
+                    for d in p.PossibleSteps:
+                        dr, dc = d.value
+                        stepPathValue = inputGrid[row+dr][col+dc].ShortestPath + 1
 
-            #if previousRowUpdates > 0 and thisRowUpdates == 0:
-                #break #want to skip the rest and restart
+                        if stepPathValue > 0:
+                            if bestStep is None or stepPathValue < bestStep:
+                                bestStep = stepPathValue
 
-            previousRowUpdates = thisRowUpdates
+                    if bestStep is not None and (p.ShortestPath < 0 or bestStep < p.ShortestPath):
+                        p.ShortestPath = bestStep
+                        thisRowUpdates += 1
+                        passUpdates += 1
 
-        if USE_LOGGING: print(f'Iteration Updates: {passUpdates}')
+                #if previousRowUpdates > 0 and thisRowUpdates == 0:
+                    #break #want to skip the rest and restart
+
+                previousRowUpdates = thisRowUpdates
+
+        if USE_LOGGING: 
+            print(f'Iteration Updates: {passUpdates}')
+            printAlphaGrid(inputGrid, False)
 
         
 """         for d in Directions:
@@ -228,6 +232,8 @@ def main(argv):
     startIndex = getTargetCoordinates(input)
     findPaths(input, startIndex)
     solution = input[startIndex[0]][startIndex[1]].ShortestPath
+
+    if USE_LOGGING: printAlphaGrid(input, True)
 
     endtime = time.perf_counter()
 
