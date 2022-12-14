@@ -1,3 +1,4 @@
+from enum import Enum
 import getopt
 import sys
 import time
@@ -15,29 +16,98 @@ ENDING_VALUE = 0
 GRID_HEIGHT = 0
 GRID_WIDTH = 0
 
+class Directions(Enum):
+    Up = (-1, 0)
+    Down = (1, 0)
+    Left = (0, -1)
+    Right = (0, 1)
+
+class Point:
+    def __init__(self, value):
+        self.Value = value
+        self.PossibleSteps: set(Directions) = set()
+        self.ShortestPath = -1
+        self.OptimalPathDirections: set(Directions) = set()
+        pass
+
+def printGrid(grid):
+    for line in grid:
+        for point in line:
+            dirs = []
+            for d in point.PossibleSteps:
+                if d is Directions.Down:
+                    dirs.append("D")
+                elif d is Directions.Up:
+                    dirs.append("U")
+                elif d is Directions.Left:
+                    dirs.append("L")
+                elif d is Directions.Right:
+                    dirs.append("R")
+
+            print(f'[{point.Value} : {"/".join(dirs)}]', end=" ")
+        
+        print()
+
 def getLetterValue(letter: chr) -> int:
     return (ord(letter) - 96) if letter.islower() else 0 if letter == "S" else 27
 
 def getInput(fileName):
     global GRID_HEIGHT
     global GRID_WIDTH
+    global PointGrid
+
     file = open(fileName, 'r')
     
-    input = [[getLetterValue(c) for c in l.strip()] for l in file.readlines()]
+    input = [[Point(getLetterValue(c)) for c in l.strip()] for l in file.readlines()]
     GRID_HEIGHT = len(input)
     GRID_WIDTH = len(input[0])
 
+    #Gather All Steps
+
+    for row in range(GRID_HEIGHT):
+        for column in range(GRID_WIDTH):
+            thisPoint = input[row][column]
+
+            if thisPoint.Value == ENDING_VALUE:
+                thisPoint.ShortestPath = 0
+                #continue
+        
+            # upward move
+            if row > 0: 
+                uMove = input[row-1][column]
+                if validStep(thisPoint.Value, uMove.Value):
+                    #move = (uMove, "up")
+                    #update thispoint
+                    thisPoint.PossibleSteps.add(Directions.Up)
+
+            # down move
+            if row < GRID_HEIGHT - 1: 
+                dMove = input[row+1][column]
+                if validStep(thisPoint.Value, dMove.Value):
+                    #move = (dMove, "down")
+                    #update thispoint
+                    thisPoint.PossibleSteps.add(Directions.Down)
+
+            # left move
+            if column > 0: 
+                lMove = input[row][column-1]
+                if validStep(thisPoint.Value, lMove.Value):
+                    #move = (lMove, "left")
+                    #update thispoint
+                    thisPoint.PossibleSteps.add(Directions.Left)
+
+            # right move
+            if column < GRID_WIDTH - 1: 
+                rMove = input[row][column+1]
+                if validStep(thisPoint.Value, rMove.Value):
+                    #move = (rMove, "right")
+                    #update thispoint
+                    thisPoint.PossibleSteps.add(Directions.Right)
+
+    #if USE_LOGGING: printGrid(input)
     return input
 
-MinimumPathLength = -1
-MoveStack = []
-StepChecks = 0
 EndPoint = None
-
-def printGrid(grid):
-    print()
-    for line in grid:
-        print("".join(['.' if (type(c) is int and 0 < c < 27) else str(c) for c in line]))
 
 def validStep(here, there):
     # If Reverse, allow all steps up but at most one step down
@@ -47,140 +117,78 @@ def validStep(here, there):
 
     return (there - here >= -1) if REVERSE_SEARCH else (here - there >= -1)
 
-def findPaths(inputGrid, startingPoint, depth):
-    global MoveStack
-    global MinimumPathLength
-    global StepChecks
-    global EndPoint
-
-    StepChecks += 1
-    if USE_LOGGING and StepChecks % 100000 == 0: print(f'Check #: {StepChecks//1000000}m', end= '\r')
-
-    startRow, startCol = startingPoint
-    rowDiff = startRow - EndPoint[0]
-    colDiff = startCol - EndPoint[1]
-
-    if MinimumPathLength > 0:        
-        minNumMoves = abs(rowDiff) + abs(colDiff)
-        if minNumMoves + len(MoveStack) >= MinimumPathLength: #short circuit if the shortest path to the end is going to be longer than the path already found
-            return
-        
-        if len(MoveStack) >= MinimumPathLength: #short circuit if I'm already longer than a found path (probably redundant with above check)
-            #if USE_LOGGING: print("BZZT Short Circuit")
-            return
-
-    myValue = inputGrid[startRow][startCol]
-
-    #todo: prioritize more likely steps
-    prioritizedMoves = []
-    otherMoves = []
-
-    startReaching = REACH_OVERRIDE or MinimumPathLength > 0
+def findPaths(inputGrid, goalCoords):
+    gRow, gCol = goalCoords
     
-    # upward move
-    if startRow > 0: 
-        uMove = inputGrid[startRow-1][startCol]
-        if validStep(myValue, uMove):
-            move = (uMove, "up")
-            if startReaching and rowDiff < 0:
-                prioritizedMoves.append(move)
-            else:
-                otherMoves.append(move)
+    passUpdates = 1
+    
+    while passUpdates > 0:
+        previousRowUpdates = 0
+        passUpdates = 0
 
-    # down move
-    if startRow < GRID_HEIGHT - 1: 
-        dMove = inputGrid[startRow+1][startCol]
-        if validStep(myValue, dMove):
-            move = (dMove, "down")
-            if startReaching and rowDiff > 0:
-                prioritizedMoves.append(move)
-            else:
-                otherMoves.append(move)
+        for row in range(GRID_HEIGHT):
+            thisRowUpdates = 0
+            for col in range(GRID_WIDTH):
+                p: Point = inputGrid[row][col]
 
-    # left move
-    if startCol > 0: 
-        lMove = inputGrid[startRow][startCol-1]
-        if validStep(myValue, lMove):
-            move = (lMove, "left")
-            if startReaching and colDiff < 0:
-                prioritizedMoves.append(move)
-            else:
-                otherMoves.append(move)
+                #if (True or p.ShortestPath < 0): #only do it if we haven't found a shortest path value, might be a mistake
+                bestStep = None
+                for d in p.PossibleSteps:
+                    dr, dc = d.value
+                    stepPathValue = inputGrid[row+dr][col+dc].ShortestPath + 1
 
-    # right move
-    if startCol < GRID_WIDTH - 1: 
-        rMove = inputGrid[startRow][startCol+1]
-        if validStep(myValue, rMove):
-            move = (rMove, "right")
-            if startReaching and colDiff > 0:
-                prioritizedMoves.append(move)
-            else:
-                otherMoves.append(move)
+                    if stepPathValue > 0:
+                        if bestStep is None or stepPathValue < bestStep:
+                            bestStep = stepPathValue
 
-    prioritizedMoves = sorted(prioritizedMoves, reverse= not REVERSE_SEARCH)
-    otherMoves = sorted(otherMoves, reverse= not REVERSE_SEARCH)
-    prioritizedMoves.extend(otherMoves)
+                if bestStep is not None and (p.ShortestPath < 0 or bestStep < p.ShortestPath):
+                    p.ShortestPath = bestStep
+                    thisRowUpdates += 1
+                    passUpdates += 1
 
-    for val, direction in prioritizedMoves:
-        moveChar = None
-        moveRow, moveCol = startRow, startCol
+            #if previousRowUpdates > 0 and thisRowUpdates == 0:
+                #break #want to skip the rest and restart
 
-        match direction:
-            case "up":
-                moveChar = "V" if REVERSE_SEARCH else "^"
-                moveRow -= 1
-            case "down":
-                moveChar = "^" if REVERSE_SEARCH else "V"
-                moveRow += 1
-            case "left":
-                moveChar = ">" if REVERSE_SEARCH else "<"
-                moveCol -= 1
-            case "right":
-                moveChar = "<" if REVERSE_SEARCH else ">"
-                moveCol += 1
+            previousRowUpdates = thisRowUpdates
+
+        if USE_LOGGING: print(f'Iteration Updates: {passUpdates}')
 
         
-        #push current value onto stack
-        MoveStack.append(myValue)
-        #update grid with move
-        inputGrid[startRow][startCol] = moveChar
+"""         for d in Directions:
+            adjRow, adjCol = d.value
+            adjPoint:Point = inputGrid[row + adjRow][col + adjCol]
+            oppDirection = None
+            stepLength = myPoint.ShortestPath + 1
 
-        if val == ENDING_VALUE: #if next step is end then store length of path and return
-            if EndPoint is None: EndPoint = (moveRow, moveCol)
-            myPathLength = len(MoveStack)
-            if MinimumPathLength < 0 or myPathLength < MinimumPathLength:
-                MinimumPathLength = myPathLength
+            match d:
+                case Directions.Up:
+                    oppDirection = Directions.Down
+                case Directions.Down:
+                    oppDirection = Directions.Up
+                case Directions.Left:
+                    oppDirection = Directions.Right
+                case Directions.Right:
+                    oppDirection = Directions.Left
 
-                if USE_LOGGING:
-                    printGrid(inputGrid)
-                    print(f'Path Length: {myPathLength}')
-        else: #recurse
-            findPaths(inputGrid, (moveRow, moveCol), depth + 1)
-        
-        
-        #reset point and pop value off stack
-        inputGrid[startRow][startCol] = MoveStack.pop()
-
-    return
+            if adjPoint.PossibleSteps.__contains__(oppDirection): #if adjacent cell can get to me
+                if adjPoint.ShortestPath < 0:
+                    adjPoint.ShortestPath = stepLength
+                elif adjPoint.ShortestPath > stepLength:
+                    adjPoint.PossibleSteps.clear()
+                    adjPoint.ShortestPath = stepLength """
 
 def getTargetCoordinates(input):
     global EndPoint
 
     startingPoint = (-1, -1)
     for i, row in enumerate(input):
-        try:
-            startIndex = row.index(STARTING_VALUE)
-            if (startIndex > -1):
-                startingPoint = (i, startIndex)
-        except ValueError:
-            pass
+        matches = [x for x in range(len(row)) if row[x].Value == STARTING_VALUE]
+        if (matches):
+            startingPoint = (i, matches[0])
         
-        try:
-            endIndex = row.index(ENDING_VALUE)
-            if (endIndex > -1):
-                EndPoint = (i, endIndex)
-        except ValueError:
-            pass
+        matches = [x for x in range(len(row)) if row[x].Value == ENDING_VALUE]
+        if (matches):
+            EndPoint = (i, matches[0])
 
     return startingPoint
 
@@ -205,13 +213,10 @@ def main(argv):
                 REVERSE_SEARCH = True
             case "-o":
                 REACH_OVERRIDE = True
-
     
     #USE_DEMO = True
     #USE_LOGGING = True
-    #REVERSE_SEARCH = True
-    #REACH_OVERRIDE = True
-    
+
     STARTING_VALUE = 27 if REVERSE_SEARCH else 0
     ENDING_VALUE = 0 if REVERSE_SEARCH else 27
 
@@ -221,18 +226,10 @@ def main(argv):
 
     input = getInput(file)
     startIndex = getTargetCoordinates(input)
-    sys.setrecursionlimit(GRID_HEIGHT * GRID_WIDTH + 50)
-
-    try:
-        findPaths(input, startIndex, 0)
-    except RecursionError as re:
-        print(f'Recursion error')
-
-    solution = MinimumPathLength
+    findPaths(input, startIndex)
+    solution = input[startIndex[0]][startIndex[1]].ShortestPath
 
     endtime = time.perf_counter()
-
-    if USE_LOGGING: print(f'Checks: {StepChecks}')
 
     print('Solution: ', solution)
     print ('Completion time: ', endtime - startTime)
