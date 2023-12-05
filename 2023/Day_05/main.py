@@ -123,12 +123,12 @@ def transform(maps: List[Map], rangeValues):
                         transformStart = map.DestinationStart
                         if rangeStart < map.SourceStart: remainders.append((rangeStart, map.SourceStart - 1))
                     else:
-                        transformStart = rangeStart + map.Shift
+                        transformStart = map.getMap(rangeStart)
 
                     if rangeEnd < map.SourceEnd:
-                        transformEnd = rangeEnd + map.Shift
+                        transformEnd = map.getMap(rangeEnd)
                     else:
-                        transformEnd = map.SourceEnd + map.Shift
+                        transformEnd = map.getMap(map.SourceEnd)
                         if rangeEnd > map.SourceEnd: remainders.append((map.SourceEnd + 1, rangeEnd))
 
                     queueUpdate = queueUpdate + remainders
@@ -139,7 +139,7 @@ def transform(maps: List[Map], rangeValues):
         
         rangeQueue = queueUpdate
 
-    return newRangeValues
+    return set(newRangeValues) # Change to a set to get rid of duplicate values
 
 def getLowestSeedLocation(input):    
     lowestSeedLocation = -1
@@ -167,8 +167,6 @@ def getLowestSeedLocation(input):
         #             if lowestSeedLocation < 0 or location < lowestSeedLocation:
         #                 lowestSeedLocation = location
 
-        # maybe work backwards? start with the lowest values and see what seed corresponds to that?
-
         # another thought is maybe I should transform the ranges as I go, like change [79:92] to [81:94]
         startingNumber = 0
         ranges = []
@@ -178,13 +176,21 @@ def getLowestSeedLocation(input):
             else:
                 ranges.append((startingNumber, startingNumber + x - 1))
 
+        if USE_LOGGING: print(ranges)
         ranges = transform(SeedToSoilMaps, ranges)
+        if USE_LOGGING: print(ranges)
         ranges = transform(SoilToFertilizerMaps, ranges)
+        if USE_LOGGING: print(ranges)
         ranges = transform(FertilizerToWaterMaps, ranges)
+        if USE_LOGGING: print(ranges)
         ranges = transform(WaterToLightMaps, ranges)
+        if USE_LOGGING: print(ranges)
         ranges = transform(LightToTempMaps, ranges)
+        if USE_LOGGING: print(ranges)
         ranges = transform(TempToHumidityMaps, ranges)
+        if USE_LOGGING: print(ranges)
         ranges = transform(HumidityToLocationMaps, ranges)
+        if USE_LOGGING: print(ranges)
 
         for pair in ranges:
             if lowestSeedLocation < 0 or pair[0] < lowestSeedLocation:
