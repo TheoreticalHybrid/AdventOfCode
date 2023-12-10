@@ -84,61 +84,39 @@ def getOptimalPressureRelease(valveSet):
 
     bestPressureRelease = 0
 
-    permStarter = startingValve
-    for perm in permutations((targetValves)):
-        totalTimeAllowed = 30
-        currentMinute = 0
-        currentPressureRelease = 0
+    totalTimeAllowed = 30
+    currentMinute = 0
+    while currentMinute < totalTimeAllowed:
+        if not any(targetValves):
+            break
 
-        for valve in perm:
-            currentCost = BestPathDict[permStarter.Name][valve.Name]
+        bestMoveValve = None
+        bestMoveCost = None
+        bestMoveValue = None
+        # get most beneficial reamaining target valve
+        for valve in targetValves:
+            # figure out best path from current valve
+            currentCost = BestPathDict[startingValve.Name][valve.Name]
             currentValue = valve.FlowRate * (totalTimeAllowed - (currentCost + currentMinute))
 
-            # accumulate pressure value
-            currentPressureRelease += currentValue
+            if bestMoveValue is None or currentValue > bestMoveValue or (currentValue == bestMoveValue and currentCost < bestMoveCost):
+                bestMoveValve = valve
+                bestMoveCost = currentCost
+                bestMoveValue = currentValue
 
-            # reassign startingValve to currentValve
-            permStarter = valve
+        # accumulate pressure value
+        bestPressureRelease += bestMoveValue
 
-            # adjust currentMinute accordingly
-            currentMinute += currentCost
+        # remove valve from targetValve
+        targetValves.remove(bestMoveValve)
 
-        bestPressureRelease = max(bestPressureRelease, currentPressureRelease)
-        permStarter = startingValve
+        # reassign startingValve to currentValve
+        startingValve = bestMoveValve
+
+        # adjust currentMinute accordingly
+        currentMinute += bestMoveCost
 
     return bestPressureRelease
-
-        # while currentMinute < totalTimeAllowed:
-        #     if not any(targetValves):
-        #         break
-
-        #     bestMoveValve = None
-        #     bestMoveCost = None
-        #     bestMoveValue = None
-        #     # get most beneficial reamaining target valve
-        #     for valve in targetValves:
-        #         # figure out best path from current valve
-        #         currentCost = BestPathDict[startingValve.Name][valve.Name]
-        #         currentValue = valve.FlowRate * (totalTimeAllowed - (currentCost + currentMinute))
-
-        #         if bestMoveValue is None or currentValue > bestMoveValue or (currentValue == bestMoveValue and currentCost < bestMoveCost):
-        #             bestMoveValve = valve
-        #             bestMoveCost = currentCost
-        #             bestMoveValue = currentValue
-
-        #     # accumulate pressure value
-        #     currentPressureRelease += bestMoveValue
-
-        #     # remove valve from targetValve
-        #     targetValves.remove(bestMoveValve)
-
-        #     # reassign startingValve to currentValve
-        #     startingValve = bestMoveValve
-
-        #     # adjust currentMinute accordingly
-        #     currentMinute += bestMoveCost
-
-    return currentPressureRelease
 
 
 def main(argv):
@@ -158,7 +136,7 @@ def main(argv):
             case "-t":
                 PART_ONE = False
     
-    #USE_DEMO = True
+    USE_DEMO = True
     #USE_LOGGING = True
     #PART_ONE = False
 
