@@ -5,7 +5,6 @@ USE_DEMO = False
 PART_ONE = False
 
 def getInput(fileName):
-    global startingPoint
     file = open(fileName, 'r')
 
     input = [[c for c in line.strip()] for line in file.readlines()]
