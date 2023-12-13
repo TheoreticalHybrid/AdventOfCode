@@ -5,64 +5,14 @@ USE_LOGGING = True
 USE_DEMO = False
 PART_ONE = False
 
-# For debugging
-# Solutions = {}
-
 def getInput(fileName):
     file = open(fileName, 'r')
 
     input = [line for line in file.readlines()]
 
     return input
-    possibilities = 0
 
-    # First split the map into single character sections?
-    mapSections = []
-    # I'm sure there's an easier way to do this, but here we go
-    currentString = None
-    for c in springMap:
-        if currentString is None or currentString[-1] == c:
-            currentString = c if currentString is None else currentString + c
-        else:
-            mapSections.append(currentString)
-            currentString = c
-    mapSections.append(currentString)
-    if USE_LOGGING: print(mapSections)
-
-    # Next find the possible matches for damaged springs
-    possibleMatches = []
-    for i, ds in enumerate(springList):
-        # maybe iterate over every map section, and list of possible chunks that would fit the ds value, and if there is only one when done then remove it from mapSections
-        sectionIndexes = []
-        sectionChunk = ''
-        sectionNumber = 0
-        sectionPossibilities = []
-        for j, section in enumerate(mapSections):
-            if section[0] == '.':
-                if not sectionChunk == '':
-                    # not sure about this section number check, the intent is not to evaluate chunk 1 of 3 for damaged spring number 2 of 3
-                    #if sectionNumber >= i and len(sectionChunk) >= ds: sectionPossibilities.append((sectionChunk, sectionIndexes))
-                    if len(sectionChunk) >= ds and ('?' in sectionChunk or len(sectionChunk) == ds): 
-                        sectionPossibilities.append((sectionChunk, sectionIndexes))
-                    sectionNumber += 1
-                    sectionIndexes = []
-                    sectionChunk = ''
-            else:
-                sectionChunk += section
-                sectionIndexes.append(j)
-        if len(sectionChunk) >= ds and ('?' in sectionChunk or len(sectionChunk) == ds): sectionPossibilities.append((sectionChunk, sectionIndexes))
-        possibleMatches.append((ds, sectionPossibilities))
-
-    print()
-    for pm in possibleMatches:
-        print(f'\t{pm}')
-    print()
-
-    # Moving away from this solution for now, going to try something more direct that will probably be terrible for part 2
-
-    return possibilities
-
-# Was used for debugging
+# Was used for debugging, not in use for solution
 def checkSolution(proposed, map, rList):
     if len(proposed) != len(map):
         print(f'\t{proposed} is a different length than {map}')
@@ -99,8 +49,7 @@ def checkSolution(proposed, map, rList):
     return True
 
 PatternLookup = {}
-def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList, prefix):
-    # global Solutions
+def getPossibleArrangementCount(springMap, springList, prefix):
     global PatternLookup
     possibilities = 0
 
@@ -120,19 +69,12 @@ def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList
             subString = springMap[i:stopIndex]
             if '.' not in subString and (stopIndex == len(springMap) or springMap[stopIndex] in ('.', '?')):
                 if len(springList) == 1:
-                    if '#' not in springMap[stopIndex:]:
-                        # tempPrefix = localPrefix + subString.replace('?', '#')
-                        # tempSuffix = '.' * len(springMap[stopIndex:])
-                        # s = tempPrefix + tempSuffix
-                        # checkSolution(s, solutionKey, solutionList)
-                        #solutions[solutionKey].append(tempPrefix + tempSuffix)
-                        possibilities += 1
+                    if '#' not in springMap[stopIndex:]: possibilities += 1
                     localPrefix += '.' if c == '?' else '#'
                 else:
-                    possibilities += getPossibleArrangementCount(solutionKey, solutionList, springMap[stopIndex+1:], springList[1:], localPrefix + subString.replace('?', '#') + '.') # springMap[stopIndex+1:] is to cover the spacer character
+                    possibilities += getPossibleArrangementCount(springMap[stopIndex+1:], springList[1:], localPrefix + subString.replace('?', '#') + '.') # springMap[stopIndex+1:] is to cover the spacer character
                     localPrefix += '.' if c == '?' else '#'
                 
-                #if '#' in subString:
                 if subString[0] == '#':
                     break
             else:
@@ -152,17 +94,12 @@ def getPossibleArrangements(input):
 
     springList = [int(c) for c in springList.split(',')]
     #if USE_LOGGING: print(f'Checking {springMap} : {springList}')
-    
-    #solutions[springMap] = []
+
     subTime = time.time()
-    possibilities = getPossibleArrangementCount(springMap, springList, springMap, springList, '')
+    possibilities = getPossibleArrangementCount(springMap, springList, '')
     subEndTime = time.time()
 
     if USE_LOGGING: print(f'\t{springMap} has {possibilities} possibilities. Time: {subEndTime - subTime}')
-
-    #for s in solutions[springMap]:
-        #if USE_LOGGING: print(f'\t{s}')
-        # if len(''.join(filter(lambda x: x == '#', s))) != sum(springList): print(f'\t{springMap} --- {s}')
 
     return possibilities
 
