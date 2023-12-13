@@ -5,20 +5,15 @@ USE_LOGGING = True
 USE_DEMO = False
 PART_ONE = False
 
-Solutions = {}
+# For debugging
+# Solutions = {}
 
 def getInput(fileName):
     file = open(fileName, 'r')
 
     input = [line for line in file.readlines()]
 
-    if False and USE_LOGGING:
-        for line in input: print(line)
-        print()
-
     return input
-
-def getPossibleArrangement_X(springMap, springList):
     possibilities = 0
 
     # First split the map into single character sections?
@@ -67,6 +62,7 @@ def getPossibleArrangement_X(springMap, springList):
 
     return possibilities
 
+# Was used for debugging
 def checkSolution(proposed, map, rList):
     if len(proposed) != len(map):
         print(f'\t{proposed} is a different length than {map}')
@@ -104,7 +100,7 @@ def checkSolution(proposed, map, rList):
 
 PatternLookup = {}
 def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList, prefix):
-    global Solutions
+    # global Solutions
     global PatternLookup
     possibilities = 0
 
@@ -125,9 +121,9 @@ def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList
             if '.' not in subString and (stopIndex == len(springMap) or springMap[stopIndex] in ('.', '?')):
                 if len(springList) == 1:
                     if '#' not in springMap[stopIndex:]:
-                        tempPrefix = localPrefix + subString.replace('?', '#')
-                        tempSuffix = '.' * len(springMap[stopIndex:])
-                        s = tempPrefix + tempSuffix
+                        # tempPrefix = localPrefix + subString.replace('?', '#')
+                        # tempSuffix = '.' * len(springMap[stopIndex:])
+                        # s = tempPrefix + tempSuffix
                         # checkSolution(s, solutionKey, solutionList)
                         #solutions[solutionKey].append(tempPrefix + tempSuffix)
                         possibilities += 1
@@ -174,7 +170,7 @@ startTime = time.time()
 
 file = 'example.txt' if USE_DEMO else 'input1.txt'
 input = getInput(file)
-solution = 0 # sum([getPossibleArrangements(row) for row in input])
+solution = 0
 
 with ThreadPoolExecutor() as executor:
     results = executor.map(getPossibleArrangements, input)
