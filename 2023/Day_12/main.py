@@ -5,7 +5,7 @@ USE_LOGGING = True
 USE_DEMO = False
 PART_ONE = False
 
-solutions = {}
+Solutions = {}
 
 def getInput(fileName):
     file = open(fileName, 'r')
@@ -102,11 +102,17 @@ def checkSolution(proposed, map, rList):
                     listIndex += 1
     return True
 
+PatternLookup = {}
 def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList, prefix):
-    global solutions
+    global Solutions
+    global PatternLookup
     possibilities = 0
 
-    localPrefix = prefix
+    localPrefix = prefix 
+
+    key = (springMap, ','.join([str(sl) for sl in springList]))
+    if key in PatternLookup:
+        return PatternLookup[key]
 
     for i, c in enumerate(springMap):
         # if number of required characters (sum of springlist) + number of required characters between them (length of springList - 1) 
@@ -138,6 +144,7 @@ def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList
                 else: localPrefix += '.'
         else: localPrefix += '.'
 
+    PatternLookup[key] = possibilities
     return possibilities
 
 def getPossibleArrangements(input):
