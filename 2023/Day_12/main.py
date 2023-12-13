@@ -1,6 +1,6 @@
 import time
 
-USE_LOGGING = True
+USE_LOGGING = False
 USE_DEMO = False
 PART_ONE = True
 
@@ -67,7 +67,42 @@ def getPossibleArrangement_X(springMap, springList):
 
     return possibilities
 
-def getPossibleArrangementCount(solutionKey, springMap, springList, prefix):
+def checkSolution(proposed, map, rList):
+    if len(proposed) != len(map):
+        print(f'\t{proposed} is a different length than {map}')
+        return False
+    elif len(''.join(filter(lambda x: x == '#', proposed))) != sum(rList):
+        print(f'\t{proposed} does not have the correct number of hashes ({sum(rList)}): {rList}')
+        return False
+    else:
+        for i,c in enumerate(map):
+            if c in ('.', '#'):
+                if proposed[i] != c:
+                    print(f'\t{map} expects a {c} at position [{i}] but {proposed} has a {proposed[i]}')
+                    return False
+
+        mapSections = []
+        # I'm sure there's an easier way to do this, but here we go
+        currentString = None
+        for c in proposed:
+            if currentString is None or currentString[-1] == c:
+                currentString = c if currentString is None else currentString + c
+            else:
+                mapSections.append(currentString)
+                currentString = c
+        mapSections.append(currentString)
+
+        listIndex = 0
+        for section in mapSections:
+            if section[0] == '#':
+                if len(section) != rList[listIndex]:
+                    print(f'\tList index {listIndex} expected a section of length {rList[listIndex]} but {proposed} has a section of length {len(section)}')
+                    return False
+                else:
+                    listIndex += 1
+    return True
+
+def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList, prefix):
     global solutions
     possibilities = 0
 
@@ -86,17 +121,21 @@ def getPossibleArrangementCount(solutionKey, springMap, springList, prefix):
                     if '#' not in springMap[stopIndex:]:
                         tempPrefix = localPrefix + subString.replace('?', '#')
                         tempSuffix = '.' * len(springMap[stopIndex:])
+                        s = tempPrefix + tempSuffix
+                        # checkSolution(s, solutionKey, solutionList)
                         solutions[solutionKey].append(tempPrefix + tempSuffix)
                         possibilities += 1
                     localPrefix += '.' if c == '?' else '#'
                 else:
-                    possibilities += getPossibleArrangementCount(solutionKey, springMap[stopIndex+1:], springList[1:], localPrefix + subString.replace('?', '#') + '.') # springMap[stopIndex+1:] is to cover the spacer character
+                    possibilities += getPossibleArrangementCount(solutionKey, solutionList, springMap[stopIndex+1:], springList[1:], localPrefix + subString.replace('?', '#') + '.') # springMap[stopIndex+1:] is to cover the spacer character
                     localPrefix += '.' if c == '?' else '#'
                 
                 #if '#' in subString:
                 if subString[0] == '#':
                     break
-            else: localPrefix += '.' if c == '?' else '#'
+            else:
+                if c == '#': break
+                else: localPrefix += '.'
         else: localPrefix += '.'
 
     return possibilities
@@ -107,12 +146,13 @@ def getPossibleArrangements(input):
     if USE_LOGGING: print(f'Checking {springMap} : {springList}')
     
     solutions[springMap] = []
-    possibilities = getPossibleArrangementCount(springMap, springMap, springList, '')
+    possibilities = getPossibleArrangementCount(springMap, springList, springMap, springList, '')
 
     if USE_LOGGING: print(f'\t{springMap} has {possibilities} possibilities')
 
     for s in solutions[springMap]:
-        print(f'\t{s}')
+        if USE_LOGGING: print(f'\t{s}')
+        # if len(''.join(filter(lambda x: x == '#', s))) != sum(springList): print(f'\t{springMap} --- {s}')
 
     return possibilities
 
