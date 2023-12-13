@@ -1,15 +1,15 @@
 import time
+from concurrent.futures import ThreadPoolExecutor
 
-USE_LOGGING = False
+USE_LOGGING = True
 USE_DEMO = False
-PART_ONE = True
+PART_ONE = False
 
 solutions = {}
 
 def getInput(fileName):
     file = open(fileName, 'r')
 
-    #input = [(a,[int(c) for c in b.split(',')]) for a,b in [line.strip().split() for line in file.readlines()]]
     input = [line for line in file.readlines()]
 
     if False and USE_LOGGING:
@@ -123,7 +123,7 @@ def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList
                         tempSuffix = '.' * len(springMap[stopIndex:])
                         s = tempPrefix + tempSuffix
                         # checkSolution(s, solutionKey, solutionList)
-                        solutions[solutionKey].append(tempPrefix + tempSuffix)
+                        #solutions[solutionKey].append(tempPrefix + tempSuffix)
                         possibilities += 1
                     localPrefix += '.' if c == '?' else '#'
                 else:
@@ -142,16 +142,23 @@ def getPossibleArrangementCount(solutionKey, solutionList, springMap, springList
 
 def getPossibleArrangements(input):
     springMap, springList = input.strip().split()
+
+    if not PART_ONE:
+        springMap = '?'.join([springMap] * 5)
+        springList = ','.join([springList] * 5)
+
     springList = [int(c) for c in springList.split(',')]
-    if USE_LOGGING: print(f'Checking {springMap} : {springList}')
+    #if USE_LOGGING: print(f'Checking {springMap} : {springList}')
     
-    solutions[springMap] = []
+    #solutions[springMap] = []
+    subTime = time.time()
     possibilities = getPossibleArrangementCount(springMap, springList, springMap, springList, '')
+    subEndTime = time.time()
 
-    if USE_LOGGING: print(f'\t{springMap} has {possibilities} possibilities')
+    if USE_LOGGING: print(f'\t{springMap} has {possibilities} possibilities. Time: {subEndTime - subTime}')
 
-    for s in solutions[springMap]:
-        if USE_LOGGING: print(f'\t{s}')
+    #for s in solutions[springMap]:
+        #if USE_LOGGING: print(f'\t{s}')
         # if len(''.join(filter(lambda x: x == '#', s))) != sum(springList): print(f'\t{springMap} --- {s}')
 
     return possibilities
@@ -160,7 +167,11 @@ startTime = time.time()
 
 file = 'example.txt' if USE_DEMO else 'input1.txt'
 input = getInput(file)
-solution = sum([getPossibleArrangements(row) for row in input])
+solution = 0 # sum([getPossibleArrangements(row) for row in input])
+
+with ThreadPoolExecutor() as executor:
+    results = executor.map(getPossibleArrangements, input)
+    solution = sum(results)
 
 endtime = time.time()
 print(f'Solution: ', solution)
