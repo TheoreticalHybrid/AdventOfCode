@@ -2,16 +2,20 @@ import time
 import os
 import re
 from itertools import product
+import copy
 
 USE_LOGGING = False
 USE_DEMO = False
 
 Map = []
+BaseMap = []
 
 def getInput(fileName):
     global Map
+    global BaseMap
     file = open(fileName, 'r')
     Map = [[c for c in line.strip()] for line in file.readlines()]
+    BaseMap = copy.deepcopy(Map)
 
     guardStartingIndex = (0,0)
     guardStartingDirection = (0,0) #going to use coordinate directions like (-1,0) for up
@@ -54,11 +58,11 @@ def findDistinctPositionsCount(input):
     while 0 <= nextSpace[0] < lowerEdge and 0 <= nextSpace[1] < rightEdge:
         visitedSpaces.add(guardPosition)
         thisMapChar = Map[guardPosition[0]][guardPosition[1]]
-        Map[guardPosition[0]][guardPosition[1]] = ('' if thisMapChar in ['.','<','>','^','v' ] else thisMapChar) + f'{guardDirectionIndex}'
         
         if Map[nextSpace[0]][nextSpace[1]] == '#':
             guardDirectionIndex = (guardDirectionIndex + 1) % 4
         else:
+            Map[guardPosition[0]][guardPosition[1]] = ('' if thisMapChar in ['.','<','>','^','v' ] else thisMapChar) + f'{guardDirectionIndex}'
             guardPosition = nextSpace
 
         nextSpace = tuple(map(lambda i, j: i + j, guardPosition, directions[guardDirectionIndex]))
@@ -74,92 +78,102 @@ def findDistinctPositionsCount(input):
 
     return len(visitedSpaces)
 
-def createsLoop(startingInfo, testingMap):
-    directions = [(-1,0), (0,1), (1,0), (0,-1)]
-    guardPosition = startingInfo[0]
-    guardDirectionIndex = directions.index(startingInfo[1])
-    lowerEdge, rightEdge = len(testingMap), len(testingMap[0])
-    
-    loopCreated = False
-    
-    nextSpace = tuple(map(lambda i, j: i + j, guardPosition, directions[guardDirectionIndex]))
-    while 0 <= nextSpace[0] < lowerEdge and 0 <= nextSpace[1] < rightEdge:
-        thisMapChar = testingMap[guardPosition[0]][guardPosition[1]]
-        
-        if str(guardDirectionIndex) in thisMapChar:
-            loopCreated = True
-            break
-
-        testingMap[guardPosition[0]][guardPosition[1]] = ('' if thisMapChar in ['.','<','>','^','v' ] else thisMapChar) + f'{guardDirectionIndex}'
-        
-        if testingMap[nextSpace[0]][nextSpace[1]] == '#':
-            guardDirectionIndex = (guardDirectionIndex + 1) % 4
-        else:
-            guardPosition = nextSpace
-
-        nextSpace = tuple(map(lambda i, j: i + j, guardPosition, directions[guardDirectionIndex]))
-
-    return loopCreated    
-
 def findNumberOfObstructionPositions(input):
     count = 0
     directions = [(-1,0), (0,1), (1,0), (0,-1)]
     lowerEdge, rightEdge = len(Map), len(Map[0])
+
+    guardPosition = input[0]
 
     #build dictionary of existing obstructions
     obs = dict()
     for i, row in enumerate(Map):
         obs[i] = [j for j,x in enumerate(row) if x == '#']
 
-    #get potential blocker spots
-    blockers = set()
-    for i,j in product(range(lowerEdge),range(rightEdge)):
-        mapChar = Map[i][j]
-        if mapChar not in ['.','#']:
-            #split on traveling directions
-            for di in [int(c) for c in mapChar]:
-                step = tuple(map(lambda x, y: x + y, (i,j), directions[di]))
-                # if step in that direction is valid
-                if 0 <= step[0] < lowerEdge and 0 <= step[1] < rightEdge and Map[step[0]][step[1]] != '#':
-                    #check if a blocker in that spot would cause an unobstructed turn
-                    rightTurnDI = (di + 1) % 4
-                    rtd = directions[rightTurnDI]
+    mapChar = Map[guardPosition[0]][guardPosition[1]]
+    gd = int(mapChar[0])
+    step = tuple(map(lambda x, y: x + y, guardPosition, directions[gd]))
 
-                    obstructed = False
-                    if rtd[0] == 0:
-                        #L/R movement
-                        obstructed = any((x > j if rtd[1] > 0 else x < j) for x in obs[i])
+    goodOnes = dict()
+    checkedPositions = set()
+
+    while 0 <= step[0] < lowerEdge and 0 <= step[1] < rightEdge:
+        #only run simulations if the step isn't the starting point and hasn't already been checked
+        if step != input[0] and step not in checkedPositions:
+            #check if a blocker in that spot would cause an unobstructed turn
+            checkedPositions.add(step)
+            rightTurnDI = (gd + 1) % 4
+
+            obs[step[0]].append(step[1]) #temporarily add
+            mockPosition = tuple(guardPosition)
+            turningPoints = set()
+            while True:
+                tp = (mockPosition, rightTurnDI)
+                if tp in turningPoints:
+                    #found loop
+                    if USE_LOGGING: print(f'Found Valid Blocker at {step}')
+                    #count += 1
+                    if step[0] not in goodOnes: goodOnes[step[0]] = set()
+                    if step[1] not in goodOnes[step[0]]:
+                        goodOnes[step[0]].add(step[1])
+                        count += 1
+                    break
+
+                turningPoints.add(tp)
+                rtd = directions[rightTurnDI]
+                if rtd[0] == 0:
+                    #L/R movement
+                    if rtd[1] == 1:
+                        closest = min((x for x in obs[mockPosition[0]] if x > mockPosition[1]), default=-1)
+                        if closest >= 0:
+                            mockPosition = (mockPosition[0], closest-1)
+                            rightTurnDI = (rightTurnDI + 1) % 4
+                        else:
+                            #no obstruction found, therefore no loop
+                            break
                     else:
-                        #U/D movement
-                        obstructed = any((k > i if rtd[0] > 0 else k < i) and j in obs[k] for k in obs)
+                        closest = max((x for x in obs[mockPosition[0]] if x < mockPosition[1]), default=-1)
+                        if closest >= 0:
+                            mockPosition = (mockPosition[0], closest+1)
+                            rightTurnDI = (rightTurnDI + 1) % 4
+                        else:
+                            break
+                else:
+                    #U/D Movement
+                    if rtd[0] == 1:
+                        closest = min((k for k in obs if k > mockPosition[0] and mockPosition[1] in obs[k]), default=-1)
+                        if closest >= 0:
+                            mockPosition = (closest-1, mockPosition[1])
+                            rightTurnDI = (rightTurnDI + 1) % 4
+                        else:
+                            break
+                    else:
+                        closest = max((k for k in obs if k < mockPosition[0] and mockPosition[1] in obs[k]), default=-1)
+                        if closest >= 0:
+                            mockPosition = (closest+1, mockPosition[1])
+                            rightTurnDI = (rightTurnDI + 1) % 4
+                        else:
+                            break
+                        
+            obs[step[0]].remove(step[1]) #remove temporary obstruction
+        
+        Map[guardPosition[0]][guardPosition[1]] = mapChar[1:] if len(mapChar) > 1 else '.'
+        guardPosition = step
+        mapChar = Map[guardPosition[0]][guardPosition[1]]
+        gd = int(mapChar[0])
+        step = tuple(map(lambda x, y: x + y, guardPosition, directions[gd]))
 
-                    if obstructed:
-                        blockers.add(step)
+        if USE_LOGGING and USE_DEMO:
+            for line in Map:
+                print(line)
+            print()
 
     if USE_LOGGING:
-        for i in range(len(Map)):
-            l = ''
-            for j in range(len(Map[0])):
-                if (i,j) in blockers:
-                    l += '?' # this represents the location of possible blockers
-                elif Map[i][j] == '#':
-                    l += '#'
-                else: l += '.'
-            print(l)
-
-    #test each blocker spot
-    
-    for testBlocker in blockers:
-        starterMap = [[c if c == '#' else '.' for c in row] for row in Map]
-        starterMap[testBlocker[0]][testBlocker[1]] = '#'
-        
-        if USE_LOGGING:
-            print(f'TESTING BLOCKER: {testBlocker}')
-            for line in starterMap: print(''.join(line))
-
-        if createsLoop(input, starterMap):
-            if USE_LOGGING: print(f'LOOP DETECTED FOR {testBlocker}')
-            count += 1
+        total = 0
+        for k in sorted(list(goodOnes.keys())):
+            print(f'{k} - ({len(goodOnes[k])}) - {sorted(list(goodOnes[k]))}')
+            total += len(goodOnes[k])
+        print(f'Total: {total}')
 
     return count
 
