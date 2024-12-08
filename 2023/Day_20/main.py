@@ -7,13 +7,14 @@ USE_DEMO = False
 PART_ONE = False
 
 class Module:
-    def __init__(self, name, mType):
+    def __init__(self, name, mType, id):
         self.Name = name
         self.Broadcaster = False
         self.Flipper = False
         self.Outputs = []
         self.IsOn = False
         self.Connections = {}
+        self.Id = id
         match mType:
             case 'b':
                 self.Broadcaster = True
@@ -40,19 +41,35 @@ class Module:
             self.Connections[connectionSource] = HighPulse
             pulse = all([v for k,v in self.Connections.items()])
             return zip(self.Outputs, itertools.repeat(not pulse), itertools.repeat(self.Name))
+        
+    def printMap(self, map):
+        print(f'{self.Name} ({map[self.Name]}):\n')
+        outputs = [map[o] for o in self.Outputs]
+        if self.Broadcaster:
+            print(f'\tLow -> {outputs}')
+        elif self.Flipper:
+            print(f'\t-High->?\n\t\t-> X')
+            print(f'\t-Low->?:')
+            print(f'\t\tOn: Low -> {outputs}')
+            print(f'\t\tOff: High -> {outputs}')
+        else:
+            print(f'\tMemory all High: Low -> {outputs}')
+            print(f'\tMemory has Low: High -> {outputs}')
 
 def getInput(fileName):
     file = open(fileName, 'r')
 
     mappings = {}
     modules: dict[str, Module] = {}
+    counter = 0
     for line in file.readlines(): # get the modules/mappings
         module, output = line.split('->')
         module = module.strip()
         output = output.strip()
         key = module[1:] if module[0] in ('%', '&') else module
         mappings[key] = [o.strip() for o in output.split(',')]
-        modules[key] = Module(key, module[0])
+        modules[key] = Module(key, module[0], counter)
+        counter += 1
 
     for k in mappings:
         modules[k].addOutputs(mappings[k])
@@ -72,7 +89,7 @@ def getPulseValue(modules: dict[str, Module], buttonPressLimit):
         while pulseQueue:
             mName, pulse, sender = pulseQueue.pop(0)
             if USE_LOGGING: 
-                if PART_ONE: print(f'{sender} -{'high' if pulse else 'low'}-> {mName}')
+                if True: print(f'{sender} -{'high' if pulse else 'low'}-> {mName}')
                 else: print(f'Button Press: {pressNumber}')
             
             if PART_ONE:
@@ -86,9 +103,30 @@ def getPulseValue(modules: dict[str, Module], buttonPressLimit):
 
     return lowPulseCount * highPulseCount
 
+def buildTree(modules: dict[str, Module]):
+    moduleQueue = ['broadcaster']
+    idMap = {}
+    visited = []
+
+    counter = 0
+    while moduleQueue:
+        mName = moduleQueue.pop(0)
+        idMap[mName] = counter
+        visited.append(mName)
+        counter += 1
+        if mName in modules:
+            moduleQueue = moduleQueue + [o for o in modules[mName].Outputs if o not in visited and o not in moduleQueue]
+        
+    for mName in visited:
+        if mName in modules:
+            modules[mName].printMap(idMap)
+
+
 def getMinimumButtonCount(modules: dict[str, Module]):
     moduleQueue = ['broadcaster']
     painDict = {} # key = module name, value = minimum number of button presses to have a low pulse output
+
+    # If a module is sending a high signal to a flipper, just don't send it
 
     while moduleQueue:
         mName = moduleQueue.pop(0)
@@ -105,7 +143,8 @@ startTime = time.time()
 file = 'example.txt' if USE_DEMO else 'input1.txt'
 input = getInput(file)
 
-solution = getPulseValue(input, 1000)
+if not PART_ONE: buildTree(input)
+solution = getPulseValue(input, 1000) if PART_ONE else 0
 
 endtime = time.time()
 print(f'Solution: ', solution)
