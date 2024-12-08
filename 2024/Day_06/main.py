@@ -1,21 +1,14 @@
 import time
-import os
-import re
-from itertools import product
-import copy
 
 USE_LOGGING = False
 USE_DEMO = False
 
 Map = []
-BaseMap = []
 
 def getInput(fileName):
     global Map
-    global BaseMap
     file = open(fileName, 'r')
     Map = [[c for c in line.strip()] for line in file.readlines()]
-    BaseMap = copy.deepcopy(Map)
 
     guardStartingIndex = (0,0)
     guardStartingDirection = (0,0) #going to use coordinate directions like (-1,0) for up
@@ -129,15 +122,14 @@ def findNumberOfObstructionPositions(input):
                             mockPosition = (mockPosition[0], closest-1)
                             rightTurnDI = (rightTurnDI + 1) % 4
                         else:
-                            #no obstruction found, therefore no loop
-                            break
+                            break #no obstruction found, therefore no loop
                     else:
                         closest = max((x for x in obs[mockPosition[0]] if x < mockPosition[1]), default=-1)
                         if closest >= 0:
                             mockPosition = (mockPosition[0], closest+1)
                             rightTurnDI = (rightTurnDI + 1) % 4
                         else:
-                            break
+                            break #no obstruction found, therefore no loop
                 else:
                     #U/D Movement
                     if rtd[0] == 1:
@@ -146,14 +138,14 @@ def findNumberOfObstructionPositions(input):
                             mockPosition = (closest-1, mockPosition[1])
                             rightTurnDI = (rightTurnDI + 1) % 4
                         else:
-                            break
+                            break #no obstruction found, therefore no loop
                     else:
                         closest = max((k for k in obs if k < mockPosition[0] and mockPosition[1] in obs[k]), default=-1)
                         if closest >= 0:
                             mockPosition = (closest+1, mockPosition[1])
                             rightTurnDI = (rightTurnDI + 1) % 4
                         else:
-                            break
+                            break #no obstruction found, therefore no loop
                         
             obs[step[0]].remove(step[1]) #remove temporary obstruction
         
