@@ -1,7 +1,7 @@
 import time
 import os
 import re
-import itertools
+from math import log10
 
 USE_LOGGING = False
 USE_DEMO = False
@@ -42,7 +42,10 @@ def getCalibrationResult(input, operators):
                     case '+':
                         equationOutput = equationOutput + equation[1][oi+1]
                     case '||':
-                        equationOutput = int(str(equationOutput) + str(equation[1][oi+1]))
+                        #equationOutput = int(str(equationOutput) + str(equation[1][oi+1]))
+                        nextNum = equation[1][oi+1]
+                        numOfDigits = int(log10(nextNum) + 1)
+                        equationOutput = (equationOutput * pow(10, numOfDigits)) + nextNum
             
             if equationOutput == goal:
                 sum += goal
