@@ -17,10 +17,11 @@ class MapJunction:
         self.IsEndpoint = isEndpoint
         self.Paths = dict()
         self.ShortestDistanceToEnd = None
+        self.TileCount = 0
 
-    def addPath(self, pathEndCoords, pathLength, pathDirectionIndex):
+    def addPath(self, pathEndCoords, pathLength, pathDirectionIndex, totalTiles):
         if pathEndCoords != self.Id and (pathEndCoords not in self.Paths or pathLength < self.Paths[pathEndCoords][0]):
-            self.Paths[pathEndCoords] = (pathLength, pathDirectionIndex)
+            self.Paths[pathEndCoords] = (pathLength, pathDirectionIndex, totalTiles)
 
     def removePath(self, pathEndCoords):
         del self.Paths[pathEndCoords]
@@ -118,7 +119,7 @@ def getShortestPath(startingPoint, endPoint):
                 diff = xDiff
                 distance = abs(diff)
                 dIndex = 0 if diff > 0 else 2
-            jObj.addPath(nextJ, distance, dIndex)
+            jObj.addPath(nextJ, distance, dIndex, distance)
 
     # Junctions with only two attached junctions are just turns in a line
     while any([k for k in jDict if k not in [startingPoint, endPoint] and len(jDict[k].Paths) < 3]):
@@ -143,10 +144,12 @@ def getShortestPath(startingPoint, endPoint):
                 #         if bObj.Coord[0] == i: lCopy[bObj.Coord[1]] = 'B'
                 #         print(f''.join(lCopy))
 
-                kaDist, kaDi = kObj.Paths[keys[0]]
-                kbDist, kbDi = kObj.Paths[keys[1]]
+                kaDist, kaDi, kaTiles = kObj.Paths[keys[0]]
+                kbDist, kbDi, kbTiles = kObj.Paths[keys[1]]
                 newLength = kaDist + kbDist
                 if abs(kaDi - kbDi) != 2: newLength += 1000
+
+                numTiles = kaTiles + kbTiles
                 
                 aObj.addPath(bObj.Coord, newLength, aObj.Paths[k][1])
                 bObj.addPath(aObj.Coord, newLength, bObj.Paths[k][1])
@@ -171,7 +174,7 @@ def getShortestPath(startingPoint, endPoint):
             pathNode = jDict[n]
             length, direction = 0, 0
             if node == endPoint:
-                length, direction = pathNode.Paths[node] #length/direction from node to endpoint
+                length, direction, tiles = pathNode.Paths[node] #length/direction/tiles from node to endpoint
             else:
                 # length = shortest length from node object plus length to pathNode,
                 # and if the direction from that shortest length is a right turn in relation to node's direction to pathNode, then add 1000
