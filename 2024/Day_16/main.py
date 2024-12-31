@@ -4,7 +4,7 @@ import re
 from typing import Dict
 
 USE_LOGGING = False
-USE_DEMO = False
+USE_DEMO = True
 
 Map = []
 Directions = [(-1,0),(0,1),(1,0),(0,-1)] # U, R, D, L
@@ -20,8 +20,15 @@ class MapJunction:
         self.TileCount = 0
 
     def addPath(self, pathEndCoords, pathLength, pathDirectionIndex, totalTiles):
-        if pathEndCoords != self.Id and (pathEndCoords not in self.Paths or pathLength < self.Paths[pathEndCoords][0]):
-            self.Paths[pathEndCoords] = (pathLength, pathDirectionIndex, totalTiles)
+        if pathEndCoords != self.Id:
+            if pathEndCoords not in self.Paths:
+                self.Paths[pathEndCoords] = (pathLength, pathDirectionIndex, totalTiles)
+        else:
+            if pathLength < self.Paths[pathEndCoords][0]:
+                self.Paths[pathEndCoords] = (pathLength, pathDirectionIndex, totalTiles)
+            elif pathLength == self.Paths[pathEndCoords][0]:
+                newTileCount = totalTiles + self.Paths[pathEndCoords][2]
+                self.Paths[pathEndCoords] = (pathLength, pathDirectionIndex, newTileCount)
 
     def removePath(self, pathEndCoords):
         del self.Paths[pathEndCoords]
@@ -151,8 +158,8 @@ def getShortestPath(startingPoint, endPoint):
 
                 numTiles = kaTiles + kbTiles
                 
-                aObj.addPath(bObj.Coord, newLength, aObj.Paths[k][1])
-                bObj.addPath(aObj.Coord, newLength, bObj.Paths[k][1])
+                aObj.addPath(bObj.Coord, newLength, aObj.Paths[k][1], numTiles)
+                bObj.addPath(aObj.Coord, newLength, bObj.Paths[k][1], numTiles)
                 del jDict[k]
                 aObj.removePath(k)
                 bObj.removePath(k)
@@ -165,6 +172,8 @@ def getShortestPath(startingPoint, endPoint):
                 
 
     nodesToExamine = [[endPoint]]
+
+    successfulPaths = []
 
     while any(nodesToExamine):
         path = nodesToExamine.pop(0)
@@ -179,46 +188,58 @@ def getShortestPath(startingPoint, endPoint):
                 # length = shortest length from node object plus length to pathNode,
                 # and if the direction from that shortest length is a right turn in relation to node's direction to pathNode, then add 1000
                 sdeLength, sdeDir = sourceNode.ShortestDistanceToEnd
-                sourceToNodeLength, sourceToNodeDirection = sourceNode.Paths[n]
+                sourceToNodeLength, sourceToNodeDirection, tiles = sourceNode.Paths[n]
                 length = sdeLength + sourceToNodeLength
                 if abs(sdeDir - sourceToNodeDirection) != 2: length += 1000
                 direction = pathNode.Paths[node][1]
             
-            if pathNode.ShortestDistanceToEnd is None or length < pathNode.ShortestDistanceToEnd[0]:
+            if pathNode.ShortestDistanceToEnd is None or length <= pathNode.ShortestDistanceToEnd[0]:
                 pathNode.updateShortestRoute(length, direction)
 
-                if pathNode != startingPoint:
-                    newPath = [n for n in path]
-                    newPath.append(pathNode.Coord)
+                newPath = [n for n in path]
+                newPath.append(n)
+                if n == startingPoint:
+                    successfulPaths.append(newPath)
+                else:
                     nodesToExamine.append(newPath)
     
     shortestDistanceLength, shortestDistanceDirection = jDict[startingPoint].ShortestDistanceToEnd
     numberOfTurns = abs(shortestDistanceDirection - 1) # starts facing right
     shortestDistanceLength += (1000 * numberOfTurns)
-    return shortestDistanceLength
+    part1Solution = shortestDistanceLength
+    
+    part2Solution = 0
+    pathSections = set()
+    pathNodes = set()
+    for sp in successfulPaths:
+        for i, endNode in enumerate(sp[1:]):
+            startNode = sp[i]
+            tileCount = jDict[startNode].Paths[endNode][2] - 1
+            section = (startNode, endNode)
+            if section not in pathSections:
+                part2Solution += tileCount
+                pathSections.add(section)
 
-exampleFile = 'example2.txt'
+                if startNode not in pathNodes:
+                    pathNodes.add(startNode)
+                    part2Solution += 1
+
+                if endNode not in pathNodes:
+                    pathNodes.add(endNode)
+                    part2Solution += 1
+
+    return (part1Solution, part2Solution)
+
+exampleFile = 'example.txt'
 file = exampleFile if USE_DEMO else 'input1.txt'
 problemInput = getInput(file)
-#exit()
 
 startTime = time.time()
 
-solution = getShortestPath(problemInput[0], problemInput[1])
+solutions = getShortestPath(problemInput[0], problemInput[1])
 
 endtime = time.time()
-print(f'Part 1 Solution: ', solution)
-print('Part 1 Completion time: ', endtime - startTime)
-
-exit()
-print('---------PART TWO---------')
-problemInput = getInput(file)
-
-
-startTime = time.time()
-
-solution = fuckItIGuessIWillSaveEachOneAndLookManually(size, problemInput)
-
-endtime = time.time()
-print(f'Part 2 Solution: ', solution)
-print ('Part 2 Completion time: ', endtime - startTime)
+print('Completion time: ', endtime - startTime)
+print(f'Part 1 Solution: ', solutions[0])
+print(f'Part 2 Solution: ', solutions[1])
+#print ('Part 2 Completion time: ', endtime - startTime)
