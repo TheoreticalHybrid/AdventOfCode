@@ -45,25 +45,26 @@ def getRibbonOrder(problemInput):
 
     return amount
 
-exampleFile = 'example2.txt'
-file = exampleFile if USE_DEMO else 'input.txt'
-problemInput = getProblemInput(file)
-#exit()
+if __name__ == "__main__":
+    exampleFile = 'example2.txt'
+    file = exampleFile if USE_DEMO else 'input.txt'
+    problemInput = getProblemInput(file)
+    #exit()
 
-startTime = time.time()
+    startTime = time.time()
 
-solution = getWrappingPaperOrder(problemInput)
+    solution = getWrappingPaperOrder(problemInput)
 
-endtime = time.time()
-print(f'Part 1 Solution: ', solution)
-print('Part 1 Completion time: ', endtime - startTime)
+    endtime = time.time()
+    print(f'Part 1 Solution: ', solution)
+    print('Part 1 Completion time: ', endtime - startTime)
 
-#exit()
-print('---------PART TWO---------')
-startTime = time.time()
+    #exit()
+    print('---------PART TWO---------')
+    startTime = time.time()
 
-solution = getRibbonOrder(problemInput)
+    solution = getRibbonOrder(problemInput)
 
-endtime = time.time()
-print(f'Part 2 Solution: ', solution)
-print ('Part 2 Completion time: ', endtime - startTime)
+    endtime = time.time()
+    print(f'Part 2 Solution: ', solution)
+    print ('Part 2 Completion time: ', endtime - startTime)

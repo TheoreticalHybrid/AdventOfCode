@@ -24,6 +24,9 @@ def getProblemInput(fileName):
 
     return problemData
 
+def getEndingFloor(problemString):
+    return problemString.count('(') - problemString.count(')')
+
 def getFirstBasementIndex(problemString):
     thisFloor = 0
 
@@ -32,25 +35,27 @@ def getFirstBasementIndex(problemString):
         if thisFloor == -1:
             return i + 1
 
-exampleFile = 'example2.txt'
-file = exampleFile if USE_DEMO else 'input.txt'
-problemInput = getProblemInput(file)
-#exit()
 
-startTime = time.time()
+if __name__ == "__main__":
+    exampleFile = 'example2.txt'
+    file = exampleFile if USE_DEMO else 'input.txt'
+    problemInput = getProblemInput(file)
+    #exit()
 
-solution = problemInput.count('(') - problemInput.count(')')
+    startTime = time.time()
 
-endtime = time.time()
-print(f'Part 1 Solution: ', solution)
-print('Part 1 Completion time: ', endtime - startTime)
+    solution = getEndingFloor(problemInput)
 
-#exit()
-print('---------PART TWO---------')
-startTime = time.time()
+    endtime = time.time()
+    print(f'Part 1 Solution: ', solution)
+    print('Part 1 Completion time: ', endtime - startTime)
 
-solution = getFirstBasementIndex(problemInput)
+    #exit()
+    print('---------PART TWO---------')
+    startTime = time.time()
 
-endtime = time.time()
-print(f'Part 2 Solution: ', solution)
-print ('Part 2 Completion time: ', endtime - startTime)
+    solution = getFirstBasementIndex(problemInput)
+
+    endtime = time.time()
+    print(f'Part 2 Solution: ', solution)
+    print ('Part 2 Completion time: ', endtime - startTime)
