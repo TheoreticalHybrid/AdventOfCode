@@ -27,11 +27,20 @@ def getProblemInput(fileName):
 
     return problemData
 
-def buildHappinessDictionary(happinessPotentials):
+def buildHappinessDictionary(happinessPotentials, partTwo):
     happinessLookup = dict()
 
+    myName = 'me'
+    if partTwo: happinessLookup[myName] = dict()
+
     for person, neighbor, happiness in happinessPotentials:
-         if person not in happinessLookup: happinessLookup[person] = dict()
+         if person not in happinessLookup: 
+            happinessLookup[person] = dict()
+            
+            if partTwo:
+                happinessLookup[person][myName] = 0
+                happinessLookup[myName][person] = 0
+
          happinessLookup[person][neighbor] = happiness
 
     return happinessLookup
@@ -45,17 +54,15 @@ def getHappinessValue(seatingList, happyLookup):
 
     return happinessSum
 
-def getOptimalSeatingValue(happinessPotentials):
-    happinessLookup = buildHappinessDictionary(happinessPotentials)
+def getOptimalSeatingValue(happinessPotentials, partTwo):
+    happinessLookup = buildHappinessDictionary(happinessPotentials, partTwo)
 
     bestHappinessValue = 0
-    bestSeatingArrangement = []
     # iterate over every permutation and determine best happiness value
     for seatingOption in itertools.permutations(list(happinessLookup.keys())):
         hVal = getHappinessValue(seatingOption, happinessLookup)
         if hVal > bestHappinessValue:
             bestHappinessValue = hVal
-            bestSeatingArrangement = seatingOption
 
     return bestHappinessValue
 
@@ -67,17 +74,16 @@ if __name__ == "__main__":
 
     startTime = time.time()
 
-    solution = 0
+    solution = getOptimalSeatingValue(problemInput, False)
 
     endtime = time.time()
     print(f'Part 1 Solution: ', solution)
     print('Part 1 Completion time: ', endtime - startTime)
 
-    exit()
     print('---------PART TWO---------')
     startTime = time.time()
 
-    solution = 0
+    solution = getOptimalSeatingValue(problemInput, True)
 
     endtime = time.time()
     print(f'Part 2 Solution: ', solution)

@@ -18,17 +18,23 @@ class TestMain(unittest.TestCase):
         testCases.append(('David', 'Bob', -7))
         testCases.append(('David', 'Carol', 41))
 
-        happyDict = solution.buildHappinessDictionary(testCases)
+        happyDict = solution.buildHappinessDictionary(testCases, False)
         
         for testPerson, testNeighbor, testHappinessValue in testCases:
             self.assertEqual(happyDict[testPerson][testNeighbor], testHappinessValue, msg=f'Test {testCount} ({testPerson}->{testNeighbor}) failed')
             testCount += 1
 
-        testCases = []
-        testCases.append((['Alice','Bob','Carol','David'], 330))
-        # todo: add more test cases to test getHappinessValue
+        self.assertEqual(solution.getOptimalSeatingValue(testCases, False), 330, msg=f'Full test failed')
 
-        self.assertEqual(solution.getOptimalSeatingValue(['Alice','Bob','Carol','David']), 330, msg=f'Final test failed')
+        testCases = []
+        testCases.append((['Alice','Bob','Carol','David'], 330))        
+        testCases.append((['Alice','Carol','Bob','David'], -114))
+        testCases.append((['Alice','Carol','David','Bob'], 22))
+        testCases.append((['Alice','David','Carol','Bob'], 330))
+
+        for testValue, expectedResult in testCases:
+            self.assertEqual(solution.getHappinessValue(testValue, happyDict), expectedResult, msg=f'Test {testCount} ({testValue}) failed')
+            testCount += 1
 
     def test_part2(self):
         testCount = 1
