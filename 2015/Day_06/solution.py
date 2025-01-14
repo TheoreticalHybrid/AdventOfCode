@@ -46,7 +46,7 @@ def setUpLights(instructions, partTwo):
                     if partTwo: lightingGrid[x][y] = lgValue + 2
                     else: lightingGrid[x][y] = 0 if lgValue == 1 else 1
 
-    return sum([sum([cell for cell in r]) for r in lightingGrid])
+    return sum([sum(r) for r in lightingGrid])
 
 if __name__ == "__main__":
     exampleFile = 'example2.txt'
