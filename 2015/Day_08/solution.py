@@ -36,34 +36,7 @@ def getNumCharacters(inputString):
     return charLen
 
 def getEncodedStringLength(inputString):
-    newStringLength = 2
-
-    i = 0
-    while i < len(inputString):
-        c = inputString[i]
-        match c:
-            case '"':
-                newStringLength += 2
-                i += 1
-            case '\\':
-                escapedChar = inputString[i+1]
-                match escapedChar:
-                    case '\\':
-                        newStringLength +=4
-                        i += 2
-                    case '"':
-                        newStringLength +=4
-                        i += 2
-                    case 'x':
-                        newStringLength += 2
-                        i += 1
-                    case _:
-                        raise SystemExit(f'Escaped Character {escapedChar} unexpected and unhandled')
-            case _:
-                newStringLength += 1
-                i += 1
-    
-    return newStringLength
+    return 2 + sum([2 if c in ['"', '\\'] else 1 for c in inputString])
 
 def getCharacterDiscrepancy(inputValues, partTwo):
     discrepancy = 0
